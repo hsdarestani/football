@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying and browser-testing A+ Football Suite V12" \
+            --arg description "Deploying A+ Football Suite V13 media and motion" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
@@ -62,31 +62,33 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=12 && wget -qO- http://127.0.0.1/assets/js/pages-app.js | grep -Fq renderModulePage && wget -qO- http://127.0.0.1/assets/js/module-views.js | grep -Fq chat-demo && wget -qO- http://127.0.0.1/assets/js/module-views.js | grep -Fq calendar-week"'
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=13 && wget -qO- http://127.0.0.1/ | grep -Fq v13-football.css?v=13 && wget -qO- http://127.0.0.1/assets/js/motion.js | grep -Fq football-cursor && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq media.eintracht.de && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq assets.bundesliga.com && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq www.vfb.de"'
 
-      - name: Verify public HTTPS and rendered modules
+      - name: Verify public HTTPS and rendered motion
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/module-views.js -o /tmp/modules
-          grep -Fq "app.js?v=12" /tmp/home
-          ! grep -Fq "atlasgames.js" /tmp/home
-          grep -Fq "chat-demo" /tmp/modules
-          grep -Fq "calendar-week" /tmp/modules
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v13-football.css -o /tmp/motion-css
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/motion.js -o /tmp/motion-js
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/media.js -o /tmp/media
+          grep -Fq "app.js?v=13" /tmp/home
+          grep -Fq "v13-football.css?v=13" /tmp/home
+          grep -Fq "football-cursor" /tmp/motion-css
+          grep -Fq "mountMotion" /tmp/motion-js
+          grep -Fq "hero_ebnoutalib" /tmp/media
+          grep -Fq "18-Leweling" /tmp/media
+          grep -Fq "dfl-obj-002ge4" /tmp/media
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=5000 --dump-dom \
-            'https://football.smarbiz.sbs/?demo=management&route=communication' > /tmp/chat-dom
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=5000 --dump-dom \
-            'https://football.smarbiz.sbs/?demo=management&route=calendar' > /tmp/calendar-dom
-          grep -Fq 'chat-demo' /tmp/chat-dom
-          grep -Fq 'message-stream' /tmp/chat-dom
-          grep -Fq 'calendar-week' /tmp/calendar-dom
-          grep -Fq 'calendar-event' /tmp/calendar-dom
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=6000 --dump-dom \
+            'https://football.smarbiz.sbs/?demo=management&route=players&player=younes' > /tmp/player-dom
+          grep -Fq 'Eintracht Frankfurt' /tmp/player-dom
+          grep -Fq 'hero_ebnoutalib' /tmp/player-dom
+          grep -Fq 'tilt-ready' /tmp/player-dom
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -94,7 +96,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Chat and Calendar render correctly in production browser" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Official player media and football motion V13 are live" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -103,6 +105,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Rendered module verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "V13 media or motion verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
