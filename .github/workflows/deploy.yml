@@ -16,7 +16,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying Matchday and product experience V18" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying mobile presentation pass V19" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
@@ -52,40 +52,83 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/js/product-experience.js && test -f /usr/share/nginx/html/assets/css/v18-experience.css && grep -Fq app.js?v=18 /usr/share/nginx/html/index.html && grep -Fq v18-experience.css?v=18 /usr/share/nginx/html/index.html && grep -Fq \"Matchday Command Center\" /usr/share/nginx/html/assets/js/product-experience.js && grep -Fq Karriere-Timeline /usr/share/nginx/html/assets/js/product-experience.js && grep -Fq notification-drawer /usr/share/nginx/html/assets/css/v18-experience.css && grep -Fq floating-create /usr/share/nginx/html/assets/css/v18-experience.css"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v19-mobile.css && grep -Fq app.js?v=19 /usr/share/nginx/html/index.html && grep -Fq v19-mobile.css?v=19 /usr/share/nginx/html/index.html && grep -Fq mobile-bottom-nav /usr/share/nginx/html/assets/css/v19-mobile.css && grep -Fq mobile-sidebar-shade /usr/share/nginx/html/assets/js/app.js && grep -Fq mobile-diagnostics /usr/share/nginx/html/assets/js/app.js"'
 
-      - name: Verify complete V18 experience
+      - name: Verify phone layouts and horizontal overflow
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/product-experience.js -o /tmp/experience-js
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v18-experience.css -o /tmp/experience-css
-          grep -Fq 'app.js?v=18' /tmp/home
-          grep -Fq 'v18-experience.css?v=18' /tmp/home
-          grep -Fq 'Matchday Command Center' /tmp/experience-js
-          grep -Fq 'Karriere-Timeline' /tmp/experience-js
-          grep -Fq 'Schnellaktion' /tmp/experience-js
-          grep -Fq 'Benachrichtigungen' /tmp/experience-js
-          grep -Fq 'Demo Tour' /tmp/experience-js
-          grep -Fq 'matchday-hero' /tmp/experience-css
-          grep -Fq 'notification-drawer' /tmp/experience-css
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v19-mobile.css -o /tmp/mobile-css
+          grep -Fq 'app.js?v=19' /tmp/home
+          grep -Fq 'v19-mobile.css?v=19' /tmp/home
+          grep -Fq 'mobile-bottom-nav' /tmp/mobile-css
+          grep -Fq 'spotlight-shell' /tmp/mobile-css
+          grep -Fq 'matchday-hero' /tmp/mobile-css
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=matchday' > /tmp/matchday-dom
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=players&player=younes' > /tmp/player-dom
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&tour=1' > /tmp/tour-dom
-          grep -Fq 'matchday-hero' /tmp/matchday-dom
-          grep -Fq 'data-matchday-countdown' /tmp/matchday-dom
-          grep -Fq 'Tagesablauf' /tmp/matchday-dom
-          grep -Fq 'career-timeline' /tmp/player-dom
-          grep -Fq 'Karriere-Timeline' /tmp/player-dom
-          grep -Fq 'floating-create' /tmp/player-dom
-          grep -Fq 'tour-layer' /tmp/tour-dom
-          grep -Fq 'Demo Tour' /tmp/tour-dom
+          CHROME_ARGS="--headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=12000"
+
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?mobilecheck=1' > /tmp/public-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&mobilecheck=1' > /tmp/dashboard-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=matchday&mobilecheck=1' > /tmp/matchday-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=players&player=younes&spotlight=younes&mobilecheck=1' > /tmp/spotlight-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&panel=notifications&mobilecheck=1' > /tmp/notifications-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&panel=quick&mobilecheck=1' > /tmp/quick-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&tour=1&mobilecheck=1' > /tmp/tour-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&menu=1&mobilecheck=1' > /tmp/menu-390.html
+
+          $BROWSER $CHROME_ARGS --window-size=430,932 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=players&player=jamie&mobilecheck=1' > /tmp/players-430.html
+          $BROWSER $CHROME_ARGS --window-size=430,932 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=communication&mobilecheck=1' > /tmp/chat-430.html
+          $BROWSER $CHROME_ARGS --window-size=430,932 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=calendar&mobilecheck=1' > /tmp/calendar-430.html
+          $BROWSER $CHROME_ARGS --window-size=430,932 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=tasks&mobilecheck=1' > /tmp/tasks-430.html
+
+          for file in /tmp/public-390.html /tmp/dashboard-390.html /tmp/matchday-390.html /tmp/spotlight-390.html /tmp/notifications-390.html /tmp/quick-390.html /tmp/tour-390.html /tmp/menu-390.html /tmp/players-430.html /tmp/chat-430.html /tmp/calendar-430.html /tmp/tasks-430.html; do
+            grep -Fq 'id="mobile-diagnostics"' "$file"
+            grep -Fq 'data-overflow="false"' "$file"
+          done
+
+          grep -Fq 'data-mobile-nav="false"' /tmp/public-390.html
+          grep -Fq 'data-mobile-nav="true"' /tmp/dashboard-390.html
+          grep -Fq 'mobile-bottom-nav' /tmp/dashboard-390.html
+          grep -Fq 'matchday-hero' /tmp/matchday-390.html
+          grep -Fq 'data-route="matchday"' /tmp/matchday-390.html
+          grep -Fq 'data-spotlight="true"' /tmp/spotlight-390.html
+          grep -Fq 'spotlight-shell' /tmp/spotlight-390.html
+          grep -Fq 'data-notifications="true"' /tmp/notifications-390.html
+          grep -Fq 'notification-drawer' /tmp/notifications-390.html
+          grep -Fq 'data-quick-actions="true"' /tmp/quick-390.html
+          grep -Fq 'quick-sheet' /tmp/quick-390.html
+          grep -Fq 'data-tour="true"' /tmp/tour-390.html
+          grep -Fq 'tour-layer' /tmp/tour-390.html
+          grep -Fq 'data-sidebar="true"' /tmp/menu-390.html
+          grep -Fq 'mobile-sidebar-shade' /tmp/menu-390.html
+          grep -Fq 'career-timeline' /tmp/players-430.html
+          grep -Fq 'chat-demo' /tmp/chat-430.html
+          grep -Fq 'calendar-week' /tmp/calendar-430.html
+          grep -Fq 'kanban-demo' /tmp/tasks-430.html
+
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/mobile-dashboard-390.png 'https://football.smarbiz.sbs/?demo=management&route=dashboard'
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/mobile-matchday-390.png 'https://football.smarbiz.sbs/?demo=management&route=matchday'
+          $BROWSER $CHROME_ARGS --window-size=430,932 --screenshot=/tmp/mobile-players-430.png 'https://football.smarbiz.sbs/?demo=management&route=players&player=younes'
+          test -s /tmp/mobile-dashboard-390.png
+          test -s /tmp/mobile-matchday-390.png
+          test -s /tmp/mobile-players-430.png
+
+      - name: Upload mobile verification screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-presentation-v19-${{ github.run_number }}
+          path: |
+            /tmp/mobile-dashboard-390.png
+            /tmp/mobile-matchday-390.png
+            /tmp/mobile-players-430.png
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -93,7 +136,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Matchday, tour, actions, notifications and timeline V18 are live" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Mobile presentation V19 passed 390px and 430px viewport tests" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -102,6 +145,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "V18 product experience verification failed; open logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Mobile presentation V19 verification failed; open logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
