@@ -1,8 +1,8 @@
-import {publicPage} from './pages-public.js?v=14';
-import {shell} from './pages-app.js?v=14';
-import {modules,players} from './data.js?v=14';
-import {modal,icon} from './components.js?v=14';
-import {mountMotion} from './motion.js?v=14';
+import {publicPage} from './pages-public.js?v=15';
+import {shell} from './pages-app.js?v=15';
+import {modules,players} from './data.js?v=15';
+import {modal,icon} from './components.js?v=15';
+import {mountMotion} from './motion.js?v=15';
 const app=document.getElementById('app');const overlay=document.getElementById('overlay-root');
 const params=new URLSearchParams(location.search);const initialRoute=params.get('route');const initialRole=params.get('demo');
 const state={screen:initialRoute||initialRole?'app':'public',role:initialRole==='player'?'player':'management',route:initialRoute||'dashboard',playerId:params.get('player')||'younes',sidebar:false};
