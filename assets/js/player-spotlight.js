@@ -1,5 +1,5 @@
-import {players} from './data.js?v=17';
-import {badge,icon} from './components.js?v=17';
+import {players} from './data.js?v=22';
+import {badge,icon} from './components.js?v=22';
 
 const metric=(label,value,target,suffix='')=>`<div class="spot-stat"><small>${label}</small><strong data-counter="${target}" data-suffix="${suffix}">0${suffix}</strong><span>${value}</span></div>`;
 
