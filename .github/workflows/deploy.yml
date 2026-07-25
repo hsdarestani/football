@@ -1,4 +1,4 @@
-name: Deploy Atlasgames Management
+name: Deploy A+ Solution Football Suite
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: atlasgames-production
+  group: aplus-football-production
   cancel-in-progress: true
 
 jobs:
@@ -30,15 +30,12 @@ jobs:
         shell: bash
         run: |
           jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying the fully German Atlasgames V8 interface" \
+            --arg description "Deploying modular A+ Solution Football Suite" \
             --arg context "production/deployment" \
-            '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" -H "X-GitHub-Api-Version: 2022-11-28" \
-            "$STATUS_API" --data-binary @/tmp/status.json
+            '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
-        shell: bash
         run: |
           test -n "$SERVER_HOST" || { echo "SERVER_HOST is missing"; exit 1; }
           test -n "$ROOT_PASSWORD" || { echo "ROOT_PASSWORD is missing"; exit 1; }
@@ -57,9 +54,7 @@ jobs:
             root@"$SERVER_HOST" \
             'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify containers and German V8 interface
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify server container
         shell: bash
         run: |
           PORT="${SSH_PORT:-22}"
@@ -67,78 +62,27 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q v8-de.css.v.8-de2 && wget -qO- http://127.0.0.1/v8-de.css | grep -q HOHER.KONTRAST && wget -qO- http://127.0.0.1/v7-fixes.js | grep -q Spielerportal"; docker compose logs --tail=80 caddy'
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Containers serve the fully German Atlasgames V8 interface" --arg context "diagnostic/server-app-ok" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/server.json
-          curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/server.json
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q A.+Solution.GmbH && wget -qO- http://127.0.0.1/assets/js/data.js | grep -q KI-Dokumentensuche && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -q Produktvision"'
 
-      - name: Diagnose public endpoint
+      - name: Verify public HTTPS
         id: public
         continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          post_status() {
-            local state="$1" context="$2" description="$3"
-            jq -n --arg state "$state" --arg target_url "$RUN_URL" --arg description "$description" --arg context "$context" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/diag.json
-            curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/diag.json >/dev/null
-          }
-
-          DOMAIN_IPS="$(getent ahostsv4 football.smarbiz.sbs | awk '{print $1}' | sort -u || true)"
-          HOST_IPS="$(getent ahostsv4 "$SERVER_HOST" | awk '{print $1}' | sort -u || true)"
-          if [ -z "$DOMAIN_IPS" ]; then
-            post_status failure diagnostic/dns-unresolved "Domain has no resolvable IPv4 address"
-          elif comm -12 <(printf '%s\n' "$DOMAIN_IPS" | sort) <(printf '%s\n' "$HOST_IPS" | sort) | grep -q .; then
-            post_status success diagnostic/dns-match "Domain resolves to the deployment server"
-          else
-            post_status failure diagnostic/dns-mismatch "Domain is proxied or resolves through another public endpoint"
-          fi
-
           set +e
-          HTTP_CODE="$(curl -sS -o /tmp/http-body -w '%{http_code}' --connect-timeout 5 --max-time 12 http://football.smarbiz.sbs/)"
-          HTTP_RC=$?
-          set -e
-          if [ "$HTTP_RC" -eq 0 ]; then
-            post_status success "diagnostic/http-${HTTP_CODE}" "Public HTTP endpoint responded"
-          else
-            post_status failure "diagnostic/http-curl-${HTTP_RC}" "Public HTTP connection failed"
-          fi
-
-          set +e
-          HTTPS_CODE="$(curl -sS -L -o /tmp/https-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
-          HTTPS_RC=$?
-          curl -sS -L -o /tmp/v8-css --connect-timeout 5 --max-time 15 'https://football.smarbiz.sbs/v8-de.css?v=8-de2'
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
+          HOME_RC=$?
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/data.js?v=10 -o /tmp/data
+          DATA_RC=$?
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/pages.css?v=10 -o /tmp/css
           CSS_RC=$?
-          curl -sS -L -o /tmp/v8-js --connect-timeout 5 --max-time 15 'https://football.smarbiz.sbs/v7-fixes.js?v=8-de2'
-          JS_RC=$?
           set -e
-          if [ "$HTTPS_RC" -eq 0 ] && [ "$CSS_RC" -eq 0 ] && [ "$JS_RC" -eq 0 ] \
-             && grep -q "v8-de.css?v=8-de2" /tmp/https-body \
-             && grep -q "HOHER KONTRAST" /tmp/v8-css \
-             && grep -q "Player workspace.*Persönlicher Bereich" /tmp/v8-js \
-             && grep -q "Overall rating.*Gesamtbewertung" /tmp/v8-js; then
-            post_status success diagnostic/https-live "HTTPS serves the fully German Atlasgames V8 interface"
-            exit 0
-          fi
-
-          set +e
-          INSECURE_CODE="$(curl -ksS -L -o /tmp/insecure-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
-          INSECURE_RC=$?
-          set -e
-          if [ "$INSECURE_RC" -eq 0 ] && grep -q "v8-de.css?v=8-de2" /tmp/insecure-body; then
-            post_status failure diagnostic/https-cert-only "Atlasgames V8 is reachable but TLS validation fails"
-          elif [ "$HTTPS_RC" -eq 6 ]; then
-            post_status failure diagnostic/https-dns-error "HTTPS failed because DNS could not resolve"
-          elif [ "$HTTPS_RC" -eq 7 ]; then
-            post_status failure diagnostic/https-connection-refused "HTTPS port is closed or refused"
-          elif [ "$HTTPS_RC" -eq 28 ]; then
-            post_status failure diagnostic/https-timeout "HTTPS timed out; check firewall and ports"
-          elif [ "$HTTPS_RC" -eq 60 ]; then
-            post_status failure diagnostic/https-cert-error "TLS certificate is invalid or unavailable"
-          else
-            post_status failure "diagnostic/https-rc-${HTTPS_RC}-http-${HTTPS_CODE}" "HTTPS did not serve the expected fully German V8 interface"
-          fi
-          exit 1
+          test "$HOME_RC" -eq 0
+          test "$DATA_RC" -eq 0
+          test "$CSS_RC" -eq 0
+          grep -q "A+ Solution GmbH" /tmp/home
+          grep -q "KI-Dokumentensuche" /tmp/data
+          grep -q "public-hero" /tmp/css
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -146,7 +90,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Atlasgames V8 is live, fully German and healthy" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "A+ Solution modular demo is live and healthy" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -155,6 +99,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Open diagnostic commit statuses or workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "A+ Solution deployment failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
