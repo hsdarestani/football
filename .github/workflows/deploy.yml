@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying return-to-home navigation V21" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying compact mobile controls V22" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
@@ -47,67 +47,67 @@ jobs:
           export SSHPASS="$ROOT_PASSWORD"
           sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify V21 server files
+      - name: Verify V22 server files
         shell: bash
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v21-home-navigation.css && grep -Fq app.js?v=21 /usr/share/nginx/html/index.html && grep -Fq v21-home-navigation.css?v=21 /usr/share/nginx/html/index.html && grep -Fq sidebar-home-link /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq home-return /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq data-home /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq 'function goHome' /usr/share/nginx/html/assets/js/app.js && grep -Fq 'dataset.homeButtons' /usr/share/nginx/html/assets/js/app.js"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v22-mobile-controls.css && grep -Fq app.js?v=22 /usr/share/nginx/html/index.html && grep -Fq v22-mobile-controls.css?v=22 /usr/share/nginx/html/index.html && grep -Fq oversizedControls /usr/share/nginx/html/assets/js/app.js && grep -Fq spotlight-actions /usr/share/nginx/html/assets/css/v22-mobile-controls.css && grep -Fq hero-actions /usr/share/nginx/html/assets/css/v22-mobile-controls.css"'
 
-      - name: Verify homepage controls in management player and mobile
+      - name: Verify real mobile CTA dimensions
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v21-home-navigation.css -o /tmp/home-css
-          grep -Fq 'app.js?v=21' /tmp/home
-          grep -Fq 'v21-home-navigation.css?v=21' /tmp/home
-          grep -Fq 'sidebar-home-link' /tmp/home-css
-          grep -Fq 'home-return' /tmp/home-css
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v22-mobile-controls.css -o /tmp/control-css
+          grep -Fq 'app.js?v=22' /tmp/home
+          grep -Fq 'v22-mobile-controls.css?v=22' /tmp/home
+          grep -Fq '.btn>svg' /tmp/control-css
+          grep -Fq 'max-height:54px' /tmp/control-css
+          grep -Fq 'max-height:52px' /tmp/control-css
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
-          CHROME_ARGS="--headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=10000"
+          CHROME_ARGS="--headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=12000"
 
-          $BROWSER $CHROME_ARGS --window-size=1600,900 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard' > /tmp/management.html
-          $BROWSER $CHROME_ARGS --window-size=1600,900 --dump-dom 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes' > /tmp/player.html
-          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes&menu=1&mobilecheck=1' > /tmp/player-mobile.html
-          $BROWSER $CHROME_ARGS --window-size=1600,900 --dump-dom 'https://football.smarbiz.sbs/' > /tmp/public.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?mobilecheck=1' > /tmp/public-mobile.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?spotlight=younes&mobilecheck=1' > /tmp/spotlight-mobile.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes&mobilecheck=1' > /tmp/player-mobile.html
 
-          for file in /tmp/management.html /tmp/player.html /tmp/player-mobile.html; do
-            grep -Fq 'class="sidebar-home-link"' "$file"
-            grep -Fq 'class="btn icon home-return"' "$file"
-            grep -Fq 'Zur Startseite' "$file"
-            grep -Fq 'data-home' "$file"
+          for file in /tmp/public-mobile.html /tmp/spotlight-mobile.html /tmp/player-mobile.html; do
+            grep -Fq 'id="mobile-diagnostics"' "$file"
+            grep -Fq 'data-overflow="false"' "$file"
+            grep -Fq 'data-oversized-controls="false"' "$file"
           done
 
-          grep -Fq 'A+ Solution Team' /tmp/management.html
-          grep -Fq 'data-player-view="calendar"' /tmp/player.html
-          grep -Fq 'mobile-sidebar-shade' /tmp/player-mobile.html
-          grep -Fq 'data-sidebar="true"' /tmp/player-mobile.html
+          grep -Fq 'Management-Demo öffnen' /tmp/public-mobile.html
+          grep -Fq 'data-max-control-height="54"' /tmp/public-mobile.html
+          grep -Fq 'data-max-control-svg="20"' /tmp/public-mobile.html
+          grep -Fq 'spotlight-shell' /tmp/spotlight-mobile.html
+          grep -Fq 'data-spotlight="true"' /tmp/spotlight-mobile.html
+          grep -Fq 'data-max-control-height="52"' /tmp/spotlight-mobile.html
+          grep -Fq 'data-max-control-svg="19"' /tmp/spotlight-mobile.html
+          grep -Fq 'data-player-view="calendar"' /tmp/player-mobile.html
           grep -Fq 'data-home-buttons="2"' /tmp/player-mobile.html
-          grep -Fq 'data-overflow="false"' /tmp/player-mobile.html
-          grep -Fq 'public-nav' /tmp/public.html
-          ! grep -Fq 'sidebar-home-link' /tmp/public.html
 
-          $BROWSER $CHROME_ARGS --window-size=1600,900 --screenshot=/tmp/home-control-management.png 'https://football.smarbiz.sbs/?demo=management&route=dashboard'
-          $BROWSER $CHROME_ARGS --window-size=1600,900 --screenshot=/tmp/home-control-player.png 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes'
-          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/home-control-mobile.png 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes&menu=1'
-          test -s /tmp/home-control-management.png
-          test -s /tmp/home-control-player.png
-          test -s /tmp/home-control-mobile.png
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/public-mobile-v22.png 'https://football.smarbiz.sbs/'
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/spotlight-mobile-v22.png 'https://football.smarbiz.sbs/?spotlight=younes'
+          $BROWSER $CHROME_ARGS --window-size=430,932 --screenshot=/tmp/player-mobile-v22.png 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes'
+          test -s /tmp/public-mobile-v22.png
+          test -s /tmp/spotlight-mobile-v22.png
+          test -s /tmp/player-mobile-v22.png
 
-      - name: Upload return-home screenshots
+      - name: Upload V22 mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: return-home-v21-${{ github.run_number }}
+          name: mobile-controls-v22-${{ github.run_number }}
           path: |
-            /tmp/home-control-management.png
-            /tmp/home-control-player.png
-            /tmp/home-control-mobile.png
+            /tmp/public-mobile-v22.png
+            /tmp/spotlight-mobile-v22.png
+            /tmp/player-mobile-v22.png
           if-no-files-found: ignore
           retention-days: 7
 
@@ -117,7 +117,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Return-to-home controls V21 are live in both roles and mobile" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Mobile CTA and spotlight controls V22 pass computed-size tests" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -126,6 +126,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Return-to-home V21 verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Mobile V22 control verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
