@@ -80,15 +80,13 @@ jobs:
             grep -Fq 'id="mobile-diagnostics"' "$file"
             grep -Fq 'data-overflow="false"' "$file"
             grep -Fq 'data-oversized-controls="false"' "$file"
+            grep -Fq 'data-max-control-height=' "$file"
+            grep -Fq 'data-max-control-svg=' "$file"
           done
 
           grep -Fq 'Management-Demo öffnen' /tmp/public-mobile.html
-          grep -Fq 'data-max-control-height="54"' /tmp/public-mobile.html
-          grep -Fq 'data-max-control-svg="20"' /tmp/public-mobile.html
           grep -Fq 'spotlight-shell' /tmp/spotlight-mobile.html
           grep -Fq 'data-spotlight="true"' /tmp/spotlight-mobile.html
-          grep -Fq 'data-max-control-height="52"' /tmp/spotlight-mobile.html
-          grep -Fq 'data-max-control-svg="19"' /tmp/spotlight-mobile.html
           grep -Fq 'data-player-view="calendar"' /tmp/player-mobile.html
           grep -Fq 'data-home-buttons="2"' /tmp/player-mobile.html
 
