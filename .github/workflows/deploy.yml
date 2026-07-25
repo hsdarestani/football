@@ -1,4 +1,4 @@
-name: Deploy NEXUS XI
+name: Deploy Atlasgames Management
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   statuses: write
 
 concurrency:
-  group: nexus-xi-production
+  group: atlasgames-production
   cancel-in-progress: true
 
 jobs:
@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying NEXUS XI to production" \
+            --arg description "Deploying Atlasgames Management to production" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" \
@@ -57,7 +57,7 @@ jobs:
             root@"$SERVER_HOST" \
             'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify containers and app on server
+      - name: Verify containers and Atlasgames assets
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -67,8 +67,8 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q NEXUS.XI"; docker compose logs --tail=80 caddy'
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Containers and internal app are healthy" --arg context "diagnostic/server-app-ok" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/server.json
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q atlasgames.css && wget -qO- http://127.0.0.1/atlasgames.js | grep -q ATLASGAMES && wget -qO- http://127.0.0.1/atlasgames.css | grep -q ag-wordmark"; docker compose logs --tail=80 caddy'
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Containers and Atlasgames assets are healthy" --arg context "diagnostic/server-app-ok" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/server.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/server.json
 
       - name: Diagnose public endpoint
@@ -91,7 +91,7 @@ jobs:
           elif comm -12 <(printf '%s\n' "$DOMAIN_IPS" | sort) <(printf '%s\n' "$HOST_IPS" | sort) | grep -q .; then
             post_status success diagnostic/dns-match "Domain resolves to the deployment server"
           else
-            post_status failure diagnostic/dns-mismatch "Domain does not resolve to the deployment server"
+            post_status failure diagnostic/dns-mismatch "Domain is proxied or resolves through another public endpoint"
           fi
 
           set +e
@@ -108,8 +108,8 @@ jobs:
           HTTPS_CODE="$(curl -sS -L -o /tmp/https-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
           HTTPS_RC=$?
           set -e
-          if [ "$HTTPS_RC" -eq 0 ] && grep -q "NEXUS XI" /tmp/https-body; then
-            post_status success diagnostic/https-live "HTTPS is healthy and serves NEXUS XI"
+          if [ "$HTTPS_RC" -eq 0 ] && grep -q "atlasgames.css" /tmp/https-body; then
+            post_status success diagnostic/https-live "HTTPS is healthy and serves the Atlasgames application"
             exit 0
           fi
 
@@ -117,8 +117,8 @@ jobs:
           INSECURE_CODE="$(curl -ksS -L -o /tmp/insecure-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
           INSECURE_RC=$?
           set -e
-          if [ "$INSECURE_RC" -eq 0 ] && grep -q "NEXUS XI" /tmp/insecure-body; then
-            post_status failure diagnostic/https-cert-only "App is reachable but TLS certificate validation fails"
+          if [ "$INSECURE_RC" -eq 0 ] && grep -q "atlasgames.css" /tmp/insecure-body; then
+            post_status failure diagnostic/https-cert-only "Atlasgames is reachable but TLS validation fails"
           elif [ "$HTTPS_RC" -eq 6 ]; then
             post_status failure diagnostic/https-dns-error "HTTPS failed because DNS could not resolve"
           elif [ "$HTTPS_RC" -eq 7 ]; then
@@ -128,7 +128,7 @@ jobs:
           elif [ "$HTTPS_RC" -eq 60 ]; then
             post_status failure diagnostic/https-cert-error "TLS certificate is invalid or unavailable"
           else
-            post_status failure "diagnostic/https-rc-${HTTPS_RC}-http-${HTTPS_CODE}" "HTTPS did not serve the expected application"
+            post_status failure "diagnostic/https-rc-${HTTPS_RC}-http-${HTTPS_CODE}" "HTTPS did not serve the expected Atlasgames application"
           fi
           exit 1
 
@@ -141,7 +141,7 @@ jobs:
         run: |
           if [ "$DEPLOY_OUTCOME" = success ]; then
             STATE=success
-            DESCRIPTION="NEXUS XI is live and healthy"
+            DESCRIPTION="Atlasgames Management is live and healthy"
           else
             STATE=failure
             DESCRIPTION="Open diagnostic commit statuses or workflow logs"
