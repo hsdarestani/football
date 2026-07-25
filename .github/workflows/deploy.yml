@@ -52,7 +52,7 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v21-home-navigation.css && grep -Fq app.js?v=21 /usr/share/nginx/html/index.html && grep -Fq v21-home-navigation.css?v=21 /usr/share/nginx/html/index.html && grep -Fq sidebar-home-link /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq home-return /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq data-home /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq 'function goHome' /usr/share/nginx/html/assets/js/app.js && grep -Fq 'data-home-buttons' /usr/share/nginx/html/assets/js/app.js"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v21-home-navigation.css && grep -Fq app.js?v=21 /usr/share/nginx/html/index.html && grep -Fq v21-home-navigation.css?v=21 /usr/share/nginx/html/index.html && grep -Fq sidebar-home-link /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq home-return /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq data-home /usr/share/nginx/html/assets/js/pages-app.js && grep -Fq 'function goHome' /usr/share/nginx/html/assets/js/app.js && grep -Fq 'dataset.homeButtons' /usr/share/nginx/html/assets/js/app.js"'
 
       - name: Verify homepage controls in management player and mobile
         id: public
