@@ -1,4 +1,4 @@
-import {MEDIA} from './media.js?v=15';
+import {MEDIA} from './media.js?v=18';
 export const players=[
  {id:'younes',name:'Younes Ebnoutalib',club:'Eintracht Frankfurt',position:'Mittelstürmer',number:11,value:'8,0 Mio. €',rating:86,availability:'100 %',image:MEDIA.younes,nation:'Deutschland / Marokko',contract:'30.06.2031'},
  {id:'dickson',name:'Dickson Abiama',club:'Rot-Weiss Essen',position:'Mittelstürmer',number:17,value:'650 Tsd. €',rating:78,availability:'82 %',image:MEDIA.dickson,nation:'Deutschland / Nigeria',contract:'30.06.2027'},
@@ -15,6 +15,7 @@ export const publicModules=[
 ];
 export const modules=[
  {id:'dashboard',icon:'home',title:'Leitstand',group:'Übersicht',desc:'Tagesüberblick, Prioritäten, Fristen und aktuelle Aktivitäten.'},
+ {id:'matchday',icon:'performance',title:'Matchday Center',group:'Übersicht',desc:'Spieltag, Reise, Medizin, Aufgaben, Kontakte und Live-Zeitplan.'},
  {id:'players',icon:'players',title:'Spielerverwaltung',group:'Kernmodule',desc:'Profile, Kontakte, Karriere, Erfolge, interne Notizen und Ansprechpartner.'},
  {id:'communication',icon:'messages',title:'Chat & Kommunikation',group:'Kernmodule',desc:'Einzel- und Gruppenchats mit Management, Spielern und Mitarbeitern.'},
  {id:'calendar',icon:'calendar',title:'Kalender & Termine',group:'Organisation',desc:'Training, Reisen, Besprechungen und direkte Terminbuchung.'},
