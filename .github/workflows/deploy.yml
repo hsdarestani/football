@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying the interactive Atlasgames V7 demo" \
+            --arg description "Deploying the German Atlasgames V8 interface" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" \
@@ -57,7 +57,7 @@ jobs:
             root@"$SERVER_HOST" \
             'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify containers and interactive demo
+      - name: Verify containers and German V8 interface
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -67,8 +67,8 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q \"ATLASGAMES DEMO V7\""; docker compose logs --tail=80 caddy'
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Containers serve the interactive Atlasgames V7 demo" --arg context "diagnostic/server-app-ok" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/server.json
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q v8-de.css && wget -qO- http://127.0.0.1/v8-de.css | grep -q HOHER.KONTRAST && wget -qO- http://127.0.0.1/v7-fixes.js | grep -q Digitales.Fußballbüro"; docker compose logs --tail=80 caddy'
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Containers serve the German Atlasgames V8 interface" --arg context "diagnostic/server-app-ok" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/server.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/server.json
 
       - name: Diagnose public endpoint
@@ -108,8 +108,10 @@ jobs:
           HTTPS_CODE="$(curl -sS -L -o /tmp/https-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
           HTTPS_RC=$?
           set -e
-          if [ "$HTTPS_RC" -eq 0 ] && grep -q "ATLASGAMES DEMO V7" /tmp/https-body; then
-            post_status success diagnostic/https-live "HTTPS serves the interactive Atlasgames V7 demo"
+          if [ "$HTTPS_RC" -eq 0 ] && grep -q "v8-de.css?v=8-de" /tmp/https-body \
+             && curl -fsS https://football.smarbiz.sbs/v8-de.css?v=8-de | grep -q "HOHER KONTRAST" \
+             && curl -fsS https://football.smarbiz.sbs/v7-fixes.js?v=8-de | grep -q "Digitales Fußballbüro"; then
+            post_status success diagnostic/https-live "HTTPS serves the German Atlasgames V8 interface"
             exit 0
           fi
 
@@ -117,8 +119,8 @@ jobs:
           INSECURE_CODE="$(curl -ksS -L -o /tmp/insecure-body -w '%{http_code}' --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/)"
           INSECURE_RC=$?
           set -e
-          if [ "$INSECURE_RC" -eq 0 ] && grep -q "ATLASGAMES DEMO V7" /tmp/insecure-body; then
-            post_status failure diagnostic/https-cert-only "Atlasgames V7 is reachable but TLS validation fails"
+          if [ "$INSECURE_RC" -eq 0 ] && grep -q "v8-de.css?v=8-de" /tmp/insecure-body; then
+            post_status failure diagnostic/https-cert-only "Atlasgames V8 is reachable but TLS validation fails"
           elif [ "$HTTPS_RC" -eq 6 ]; then
             post_status failure diagnostic/https-dns-error "HTTPS failed because DNS could not resolve"
           elif [ "$HTTPS_RC" -eq 7 ]; then
@@ -128,7 +130,7 @@ jobs:
           elif [ "$HTTPS_RC" -eq 60 ]; then
             post_status failure diagnostic/https-cert-error "TLS certificate is invalid or unavailable"
           else
-            post_status failure "diagnostic/https-rc-${HTTPS_RC}-http-${HTTPS_CODE}" "HTTPS did not serve the expected Atlasgames V7 demo"
+            post_status failure "diagnostic/https-rc-${HTTPS_RC}-http-${HTTPS_CODE}" "HTTPS did not serve the expected German V8 interface"
           fi
           exit 1
 
@@ -141,7 +143,7 @@ jobs:
         run: |
           if [ "$DEPLOY_OUTCOME" = success ]; then
             STATE=success
-            DESCRIPTION="Atlasgames V7 is live, interactive and healthy"
+            DESCRIPTION="Atlasgames V8 is live, German and healthy"
           else
             STATE=failure
             DESCRIPTION="Open diagnostic commit statuses or workflow logs"
