@@ -21,18 +21,25 @@ jobs:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
+      RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
     steps:
       - name: Mark deployment pending
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
+          jq -n \
+            --arg state "pending" \
+            --arg target_url "$RUN_URL" \
+            --arg description "Deploying NEXUS XI to production" \
+            --arg context "production/deployment" \
+            '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/pending.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
-            -d '{"state":"pending","target_url":"https://football.smarbiz.sbs","description":"Deploying NEXUS XI to production","context":"production/deployment"}'
+            --data-binary @/tmp/pending.json
 
       - name: Check deployment secrets
         shell: bash
@@ -92,7 +99,7 @@ jobs:
           fi
           jq -n \
             --arg state "$STATE" \
-            --arg target_url "https://football.smarbiz.sbs" \
+            --arg target_url "$RUN_URL" \
             --arg description "$DESCRIPTION" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
