@@ -1,4 +1,4 @@
-name: Deploy Apex XI
+name: Deploy NEXUS XI
 
 on:
   push:
@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: apex-xi-production
+  group: nexus-xi-production
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
@@ -23,24 +24,38 @@ jobs:
         run: |
           if [ -z "$SERVER_HOST" ] || [ -z "$ROOT_PASSWORD" ]; then
             echo "ready=false" >> "$GITHUB_OUTPUT"
-            echo "SERVER_HOST or ROOT_PASSWORD is missing. Deployment skipped."
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+            echo "SERVER_HOST or ROOT_PASSWORD is missing."
+            exit 1
           fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Install SSH client
-        if: steps.secrets.outputs.ready == 'true'
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Deploy to production
-        if: steps.secrets.outputs.ready == 'true'
         shell: bash
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
           sshpass -e ssh \
             -p "$PORT" \
+            -o ConnectTimeout=20 \
+            -o ServerAliveInterval=30 \
             -o StrictHostKeyChecking=no \
             -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
             'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
+
+      - name: Verify HTTPS deployment
+        shell: bash
+        run: |
+          for attempt in $(seq 1 24); do
+            if curl -fsSL --connect-timeout 10 --max-time 20 https://football.smarbiz.sbs/ | grep -q "NEXUS XI"; then
+              echo "Production is healthy: https://football.smarbiz.sbs"
+              exit 0
+            fi
+            echo "Health check attempt ${attempt}/24 failed; retrying..."
+            sleep 5
+          done
+          echo "Production health check failed."
+          exit 1
