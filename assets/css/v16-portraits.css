@@ -1,0 +1,47 @@
+/* A+ Football Suite V16 — portrait framing and minimal public roster */
+.media-card:has(> [data-real-player]),
+.profile-cover:has(> [data-real-player]),
+.hero-panel:has(> [data-real-player]){
+  background:
+    radial-gradient(circle at 50% 28%,rgba(55,215,255,.14),transparent 34%),
+    radial-gradient(circle at 48% 82%,rgba(156,255,69,.08),transparent 32%),
+    linear-gradient(145deg,#0e1721,#070b11 70%)!important;
+}
+.media-card>img[data-real-player],
+.profile-cover>img[data-real-player],
+.hero-panel>img[data-real-player]{
+  width:100%!important;
+  height:100%!important;
+  object-fit:contain!important;
+  object-position:center bottom!important;
+  box-sizing:border-box!important;
+  transform:none!important;
+  filter:drop-shadow(0 22px 34px rgba(0,0,0,.36)) saturate(1.04) contrast(1.02)!important;
+}
+.media-card>img[data-real-player]{padding:10px 5% 0!important}
+.roster-grid .media-card>img[data-real-player]{padding:0 4%!important}
+.hero-stage .media-card>img[data-real-player]{padding:5px 7% 0!important}
+.profile-cover>img[data-real-player]{padding:0 8%!important}
+.hero-panel>img[data-real-player]{padding:0 8% 0 38%!important;object-position:right bottom!important}
+.media-card:hover>img[data-real-player],
+.profile-cover:hover>img[data-real-player],
+.hero-panel:hover>img[data-real-player]{transform:scale(1.018)!important}
+.media-card:has(> [data-real-player]):after{
+  background:linear-gradient(180deg,transparent 38%,rgba(3,6,10,.22) 58%,rgba(3,6,10,.94))!important;
+}
+.profile-cover:has(> [data-real-player]):after{
+  background:linear-gradient(90deg,rgba(4,8,13,.68),transparent 48%),linear-gradient(180deg,transparent 42%,rgba(3,6,10,.9))!important;
+}
+.roster-grid{align-items:stretch!important}
+.roster-grid .media-card{min-height:455px!important}
+.roster-grid .media-copy h3{font-size:25px!important}
+.roster-grid .media-copy .meta{margin-top:7px!important}
+.public-section#spieler{padding-top:80px!important;padding-bottom:88px!important}
+.public-section#spieler .section-head{margin-bottom:26px!important;align-items:center!important}
+.public-section#spieler .section-head h2{font-size:clamp(44px,4.4vw,68px)!important;max-width:780px!important}
+.public-section#spieler .section-head p{max-width:560px!important;font-size:14px!important;line-height:1.55!important}
+@media(max-width:900px){
+  .profile-cover>img[data-real-player]{padding:0 2%!important}
+  .hero-panel>img[data-real-player]{padding:0 0 0 22%!important}
+  .roster-grid .media-card{min-height:390px!important}
+}
