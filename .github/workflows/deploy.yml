@@ -1,0 +1,46 @@
+name: Deploy Apex XI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: apex-xi-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
+      SSH_PORT: ${{ secrets.SSH_PORT }}
+    steps:
+      - name: Check deployment secrets
+        id: secrets
+        shell: bash
+        run: |
+          if [ -z "$SERVER_HOST" ] || [ -z "$ROOT_PASSWORD" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "SERVER_HOST or ROOT_PASSWORD is missing. Deployment skipped."
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install SSH client
+        if: steps.secrets.outputs.ready == 'true'
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy to production
+        if: steps.secrets.outputs.ready == 'true'
+        shell: bash
+        run: |
+          PORT="${SSH_PORT:-22}"
+          export SSHPASS="$ROOT_PASSWORD"
+          sshpass -e ssh \
+            -p "$PORT" \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            root@"$SERVER_HOST" \
+            'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
