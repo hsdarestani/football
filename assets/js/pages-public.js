@@ -1,6 +1,6 @@
-import {MEDIA} from './media.js?v=17';
-import {players,publicModules,modules} from './data.js?v=17';
-import {logo,badge,icon} from './components.js?v=17';
+import {MEDIA} from './media.js?v=22';
+import {players,publicModules,modules} from './data.js?v=22';
+import {logo,badge,icon} from './components.js?v=22';
 const portrait=(p)=>`<img src="${p.image}" alt="${p.name}" loading="eager" referrerpolicy="no-referrer" data-real-player="${p.id}">`;
 const spotlightHint=()=>`<span class="spotlight-hint">${icon('search')} SPOTLIGHT</span>`;
 export function publicPage(){
