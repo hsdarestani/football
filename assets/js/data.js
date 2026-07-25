@@ -1,11 +1,11 @@
-import {MEDIA} from './media.js?v=13';
+import {MEDIA} from './media.js?v=14';
 export const players=[
  {id:'younes',name:'Younes Ebnoutalib',club:'Eintracht Frankfurt',position:'Mittelstürmer',number:11,value:'8,0 Mio. €',rating:86,availability:'100 %',image:MEDIA.younes,nation:'Deutschland / Marokko',contract:'30.06.2031'},
  {id:'dickson',name:'Dickson Abiama',club:'Rot-Weiss Essen',position:'Mittelstürmer',number:17,value:'650 Tsd. €',rating:78,availability:'82 %',image:MEDIA.dickson,nation:'Deutschland / Nigeria',contract:'30.06.2027'},
  {id:'jamie',name:'Jamie Leweling',club:'VfB Stuttgart',position:'Rechtsaußen',number:18,value:'22,0 Mio. €',rating:88,availability:'96 %',image:MEDIA.jamie,nation:'Deutschland',contract:'30.06.2029'},
- {id:'luca',name:'Luca Sirch',club:'1. FC Kaiserslautern',position:'Innenverteidiger',number:5,value:'2,2 Mio. €',rating:79,availability:'92 %',image:MEDIA.stadium,nation:'Deutschland',contract:'30.06.2028'},
- {id:'ayoub',name:'Ayoub Chaikhoun',club:'U23 Demo-Team',position:'Offensives Mittelfeld',number:8,value:'500 Tsd. €',rating:75,availability:'98 %',image:MEDIA.firstgoal,nation:'Deutschland / Marokko',contract:'30.06.2029'},
- {id:'aymen',name:'Aymen Barkok',club:'Demo-Profil',position:'Zentrales Mittelfeld',number:10,value:'1,2 Mio. €',rating:80,availability:'89 %',image:MEDIA.portrait,nation:'Deutschland / Marokko',contract:'30.06.2027'}
+ {id:'luca',name:'Luca Sirch',club:'SV Elversberg',position:'Innenverteidiger',number:26,value:'2,2 Mio. €',rating:79,availability:'92 %',image:MEDIA.luca,nation:'Deutschland',contract:'30.06.2029'},
+ {id:'ayoub',name:'Ayoub Chaikhoun',club:'1. FC Nürnberg',position:'Offensives Mittelfeld',number:17,value:'500 Tsd. €',rating:75,availability:'98 %',image:MEDIA.ayoub,nation:'Deutschland / Marokko',contract:'30.06.2029'},
+ {id:'aymen',name:'Aymen Barkok',club:'Raja Casablanca',position:'Zentrales Mittelfeld',number:25,value:'1,2 Mio. €',rating:80,availability:'89 %',image:MEDIA.aymen,nation:'Deutschland / Marokko',contract:'30.06.2028'}
 ];
 export const publicModules=[
  {id:'public',icon:'players',title:'Öffentlicher Bereich',desc:'Management-Vorstellung, Spielerübersicht, Profile, Bildergalerie, Highlight-Videos, Karriere, Titel, News und Transfers.',points:['Digitale Visitenkarte','Öffentliche Spielerprofile','Bilder & Highlight-Videos','Statistiken & Erfolge']},
@@ -37,7 +37,7 @@ export const activity=[
  {title:'Vertragsnachtrag bereit',sub:'Younes Ebnoutalib · Dokumentencenter',time:'vor 12 Min.',image:MEDIA.younes},
  {title:'Neue Club-Anfrage',sub:'Dickson Abiama · Transferübersicht',time:'vor 28 Min.',image:MEDIA.dickson},
  {title:'Leistungsbericht hochgeladen',sub:'Jamie Leweling · Spielanalyse',time:'vor 1 Std.',image:MEDIA.jamie},
- {title:'Hotel bestätigt',sub:'London-Reise · Spielerbetreuung',time:'vor 2 Std.',image:MEDIA.lifestyle}
+ {title:'Hotel bestätigt',sub:'Luca Sirch · Spielerbetreuung',time:'vor 2 Std.',image:MEDIA.luca}
 ];
 export const sampleRows={
  documents:[['Arbeitsvertrag 2026–2031','Younes Ebnoutalib','Vertrag','Signiert'],['Medizinischer Bericht Juli','Dickson Abiama','Medizin','Vertraulich'],['Visa-Unterlagen London','Younes Ebnoutalib','Reise','Gültig'],['Sponsoring-Vereinbarung','Jamie Leweling','Sponsoring','In Prüfung']],
