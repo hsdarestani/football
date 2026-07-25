@@ -1,11 +1,12 @@
-import {publicPage} from './pages-public.js?v=12';
-import {shell} from './pages-app.js?v=12';
-import {modules,players} from './data.js?v=12';
-import {modal,icon} from './components.js?v=12';
+import {publicPage} from './pages-public.js?v=13';
+import {shell} from './pages-app.js?v=13';
+import {modules,players} from './data.js?v=13';
+import {modal,icon} from './components.js?v=13';
+import {mountMotion} from './motion.js?v=13';
 const app=document.getElementById('app');const overlay=document.getElementById('overlay-root');
 const params=new URLSearchParams(location.search);const initialRoute=params.get('route');const initialRole=params.get('demo');
 const state={screen:initialRoute||initialRole?'app':'public',role:initialRole==='player'?'player':'management',route:initialRoute||'dashboard',playerId:params.get('player')||'younes',sidebar:false};
-function render(){app.innerHTML=state.screen==='public'?publicPage():shell(state);bindReveal()}
+function render(){app.innerHTML=state.screen==='public'?publicPage():shell(state);bindReveal();requestAnimationFrame(()=>mountMotion(document))}
 function bindReveal(){requestAnimationFrame(()=>{const els=document.querySelectorAll('.reveal');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.08});els.forEach(e=>io.observe(e))})}
 function toast(title,sub){document.querySelector('.toast')?.remove();const el=document.createElement('div');el.className='toast';el.innerHTML=`<b>${title}</b><span>${sub}</span>`;document.body.appendChild(el);setTimeout(()=>el.remove(),2600)}
 function syncUrl(){if(state.screen==='public'){history.replaceState({},'',location.pathname);return}const q=new URLSearchParams({demo:state.role,route:state.route});if(state.playerId)q.set('player',state.playerId);history.replaceState({},'',`${location.pathname}?${q}`)}
