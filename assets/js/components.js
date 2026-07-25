@@ -1,5 +1,5 @@
-import {icon} from './icons.js?v=14';
-import {players} from './data.js?v=14';
+import {icon} from './icons.js?v=15';
+import {players} from './data.js?v=15';
 const initials=name=>name.split(/\s+/).map(x=>x[0]).slice(0,2).join('').toUpperCase();
 export const logo=()=>`<div class="aplus-logo"><div class="aplus-mark"><b>A+</b></div><div class="aplus-copy"><b>A+ SOLUTION</b><small>GMBH · FOOTBALL SUITE</small></div></div>`;
 export const avatar=(p,size='')=>`<div class="avatar ${size}" data-player-photo="${p.id||''}"><img src="${p.image}" alt="${p.name||'Spieler'}" loading="lazy" referrerpolicy="no-referrer" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><span hidden>${initials(p.name||'A+')}</span></div>`;
