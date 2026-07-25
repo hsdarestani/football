@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  statuses: write
+
 concurrency:
   group: nexus-xi-production
   cancel-in-progress: true
@@ -18,16 +22,25 @@ jobs:
       ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
       SSH_PORT: ${{ secrets.SSH_PORT }}
     steps:
+      - name: Mark deployment pending
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d '{"state":"pending","target_url":"https://football.smarbiz.sbs","description":"Deploying NEXUS XI to production","context":"production/deployment"}'
+
       - name: Check deployment secrets
-        id: secrets
         shell: bash
         run: |
           if [ -z "$SERVER_HOST" ] || [ -z "$ROOT_PASSWORD" ]; then
-            echo "ready=false" >> "$GITHUB_OUTPUT"
             echo "SERVER_HOST or ROOT_PASSWORD is missing."
             exit 1
           fi
-          echo "ready=true" >> "$GITHUB_OUTPUT"
 
       - name: Install SSH client
         run: sudo apt-get update && sudo apt-get install -y sshpass
@@ -59,3 +72,33 @@ jobs:
           done
           echo "Production health check failed."
           exit 1
+
+      - name: Publish deployment result
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
+        shell: bash
+        run: |
+          if [ "$JOB_STATUS" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="NEXUS XI is live and healthy"
+          elif [ "$JOB_STATUS" = "cancelled" ]; then
+            STATE="error"
+            DESCRIPTION="Production deployment was cancelled"
+          else
+            STATE="failure"
+            DESCRIPTION="Production deployment or health check failed"
+          fi
+          jq -n \
+            --arg state "$STATE" \
+            --arg target_url "https://football.smarbiz.sbs" \
+            --arg description "$DESCRIPTION" \
+            --arg context "production/deployment" \
+            '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            --data-binary @/tmp/status.json
