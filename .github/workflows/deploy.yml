@@ -29,18 +29,15 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying A+ Football Suite V13 media and motion" \
-            --arg context "production/deployment" \
-            '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying portrait coverage V14" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
         run: |
-          test -n "$SERVER_HOST" || { echo "SERVER_HOST is missing"; exit 1; }
-          test -n "$ROOT_PASSWORD" || { echo "ROOT_PASSWORD is missing"; exit 1; }
+          test -n "$SERVER_HOST"
+          test -n "$ROOT_PASSWORD"
 
-      - name: Install SSH client
+      - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y sshpass
 
       - name: Deploy to production
@@ -48,47 +45,46 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" \
-            -o ConnectTimeout=20 -o ServerAliveInterval=30 \
-            -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            root@"$SERVER_HOST" \
-            'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify server container
+      - name: Verify server files
         shell: bash
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" \
-            -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-            root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=13 && wget -qO- http://127.0.0.1/ | grep -Fq v13-football.css?v=13 && wget -qO- http://127.0.0.1/assets/js/motion.js | grep -Fq football-cursor && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq media.eintracht.de && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq assets.bundesliga.com && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq www.vfb.de"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=14 && wget -qO- http://127.0.0.1/assets/js/components.js | grep -Fq player-cell && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq images.weserv.nl && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq 643923 && wget -qO- http://127.0.0.1/assets/js/media.js | grep -Fq 347866"'
 
-      - name: Verify public HTTPS and rendered motion
+      - name: Verify public portraits and rendered names
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v13-football.css -o /tmp/motion-css
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/motion.js -o /tmp/motion-js
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/components.js -o /tmp/components
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/media.js -o /tmp/media
-          grep -Fq "app.js?v=13" /tmp/home
-          grep -Fq "v13-football.css?v=13" /tmp/home
-          grep -Fq "football-cursor" /tmp/motion-css
-          grep -Fq "mountMotion" /tmp/motion-js
-          grep -Fq "hero_ebnoutalib" /tmp/media
-          grep -Fq "18-Leweling" /tmp/media
-          grep -Fq "dfl-obj-002ge4" /tmp/media
+          grep -Fq 'app.js?v=14' /tmp/home
+          grep -Fq 'player-cell' /tmp/components
+          grep -Fq 'images.weserv.nl' /tmp/media
+
+          YOUNES_URL=$(sed -n "s/.*younes:'\([^']*\)'.*/\1/p" /tmp/media)
+          DICKSON_URL=$(sed -n "s/.*dickson:'\([^']*\)'.*/\1/p" /tmp/media)
+          JAMIE_URL=$(sed -n "s/.*jamie:'\([^']*\)'.*/\1/p" /tmp/media)
+          test -n "$YOUNES_URL" && test -n "$DICKSON_URL" && test -n "$JAMIE_URL"
+          curl -fsSL --connect-timeout 10 --max-time 30 "$YOUNES_URL" -o /tmp/younes.webp
+          curl -fsSL --connect-timeout 10 --max-time 30 "$DICKSON_URL" -o /tmp/dickson.webp
+          curl -fsSL --connect-timeout 10 --max-time 30 "$JAMIE_URL" -o /tmp/jamie.webp
+          test -s /tmp/younes.webp && test -s /tmp/dickson.webp && test -s /tmp/jamie.webp
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=6000 --dump-dom \
-            'https://football.smarbiz.sbs/?demo=management&route=players&player=younes' > /tmp/player-dom
-          grep -Fq 'Eintracht Frankfurt' /tmp/player-dom
-          grep -Fq 'hero_ebnoutalib' /tmp/player-dom
-          grep -Fq 'tilt-ready' /tmp/player-dom
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=7000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=documents' > /tmp/docs-dom
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=7000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=tasks' > /tmp/tasks-dom
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=7000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=players&player=younes' > /tmp/player-dom
+          grep -Fq 'player-cell' /tmp/docs-dom
+          grep -Fq 'data-player-photo="younes"' /tmp/docs-dom
+          grep -Fq 'player-reference' /tmp/tasks-dom
+          grep -Fq 'images.weserv.nl' /tmp/player-dom
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -96,7 +92,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Official player media and football motion V13 are live" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Player portraits render beside names across V14" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -105,6 +101,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "V13 media or motion verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Portrait verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
