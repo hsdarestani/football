@@ -16,7 +16,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     env:
       SERVER_HOST: ${{ secrets.SERVER_HOST }}
       ROOT_PASSWORD: ${{ secrets.ROOT_PASSWORD }}
@@ -28,9 +28,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n \
-            --arg state "pending" \
-            --arg target_url "$RUN_URL" \
+          jq -n --arg state pending --arg target_url "$RUN_URL" \
             --arg description "Deploying NEXUS XI to production" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/pending.json
@@ -44,10 +42,8 @@ jobs:
       - name: Check deployment secrets
         shell: bash
         run: |
-          if [ -z "$SERVER_HOST" ] || [ -z "$ROOT_PASSWORD" ]; then
-            echo "SERVER_HOST or ROOT_PASSWORD is missing."
-            exit 1
-          fi
+          test -n "$SERVER_HOST" || { echo "SERVER_HOST is missing"; exit 1; }
+          test -n "$ROOT_PASSWORD" || { echo "ROOT_PASSWORD is missing"; exit 1; }
 
       - name: Install SSH client
         run: sudo apt-get update && sudo apt-get install -y sshpass
@@ -66,18 +62,40 @@ jobs:
             root@"$SERVER_HOST" \
             'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify HTTPS deployment
+      - name: Verify containers and app on server
         shell: bash
         run: |
-          for attempt in $(seq 1 24); do
-            if curl -fsSL --connect-timeout 10 --max-time 20 https://football.smarbiz.sbs/ | grep -q "NEXUS XI"; then
+          PORT="${SSH_PORT:-22}"
+          export SSHPASS="$ROOT_PASSWORD"
+          sshpass -e ssh \
+            -p "$PORT" \
+            -o ConnectTimeout=20 \
+            -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            root@"$SERVER_HOST" \
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q NEXUS.XI"; echo "Internal app health check passed"; docker compose logs --tail=60 caddy'
+
+      - name: Diagnose DNS
+        shell: bash
+        run: |
+          echo "Resolved IPv4 addresses:"
+          getent ahostsv4 football.smarbiz.sbs || true
+          echo "HTTP headers:"
+          curl -vI --connect-timeout 5 --max-time 10 http://football.smarbiz.sbs/ || true
+
+      - name: Verify public HTTPS deployment
+        shell: bash
+        run: |
+          for attempt in $(seq 1 8); do
+            echo "HTTPS health check ${attempt}/8"
+            if curl -fsSL --connect-timeout 5 --max-time 10 https://football.smarbiz.sbs/ | grep -q "NEXUS XI"; then
               echo "Production is healthy: https://football.smarbiz.sbs"
               exit 0
             fi
-            echo "Health check attempt ${attempt}/24 failed; retrying..."
             sleep 5
           done
-          echo "Production health check failed."
+          echo "Final HTTPS diagnostics:"
+          curl -vkI --connect-timeout 5 --max-time 15 https://football.smarbiz.sbs/ || true
           exit 1
 
       - name: Publish deployment result
@@ -87,21 +105,18 @@ jobs:
           JOB_STATUS: ${{ job.status }}
         shell: bash
         run: |
-          if [ "$JOB_STATUS" = "success" ]; then
-            STATE="success"
+          if [ "$JOB_STATUS" = success ]; then
+            STATE=success
             DESCRIPTION="NEXUS XI is live and healthy"
-          elif [ "$JOB_STATUS" = "cancelled" ]; then
-            STATE="error"
+          elif [ "$JOB_STATUS" = cancelled ]; then
+            STATE=error
             DESCRIPTION="Production deployment was cancelled"
           else
-            STATE="failure"
-            DESCRIPTION="Production deployment or health check failed"
+            STATE=failure
+            DESCRIPTION="Open workflow logs for deployment diagnostics"
           fi
-          jq -n \
-            --arg state "$STATE" \
-            --arg target_url "$RUN_URL" \
-            --arg description "$DESCRIPTION" \
-            --arg context "production/deployment" \
+          jq -n --arg state "$STATE" --arg target_url "$RUN_URL" \
+            --arg description "$DESCRIPTION" --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' > /tmp/status.json
           curl -fsS -X POST \
             -H "Authorization: Bearer $GH_TOKEN" \
