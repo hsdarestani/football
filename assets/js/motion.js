@@ -1,4 +1,4 @@
-import {players} from './data.js?v=14';
+import {players} from './data.js?v=15';
 const ballSvg=`<svg viewBox="0 0 64 64" aria-hidden="true"><defs><radialGradient id="g" cx="34%" cy="28%"><stop offset="0" stop-color="#fff"/><stop offset=".68" stop-color="#dfe7eb"/><stop offset="1" stop-color="#9aa8b1"/></radialGradient></defs><circle cx="32" cy="32" r="29" fill="url(#g)" stroke="#071019" stroke-width="2"/><path d="m32 17 9 6-3 11H26l-3-11 9-6Z" fill="#071019"/><path d="m23 23-9-2-7 10 6 10 11-4M41 23l9-2 7 10-6 10-11-4M26 34l-7 10 7 11h12l7-11-7-10M14 21l3-10 12-5 3 11M50 21l-3-10-12-5-3 11M13 41l2 11 11 6M51 41l-2 11-11 6" fill="none" stroke="#071019" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 let cursor=null,lastX=0,lastY=0,rotation=0,moveBound=false;
 const zones='.public-hero,.hero-stage,.media-card,.hero-panel,.profile-cover,.scout-card,.video-card,.module-card';
