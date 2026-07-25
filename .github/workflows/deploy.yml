@@ -30,7 +30,7 @@ jobs:
         shell: bash
         run: |
           jq -n --arg state pending --arg target_url "$RUN_URL" \
-            --arg description "Deploying modular A+ Solution Football Suite" \
+            --arg description "Deploying and browser-testing A+ Football Suite V12" \
             --arg context "production/deployment" \
             '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
@@ -62,27 +62,31 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq \"A+ Solution GmbH\" && wget -qO- http://127.0.0.1/assets/js/data.js | grep -Fq \"KI-Dokumentensuche\" && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -Fq \"Produktvision\""'
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=12 && wget -qO- http://127.0.0.1/assets/js/pages-app.js | grep -Fq renderModulePage && wget -qO- http://127.0.0.1/assets/js/module-views.js | grep -Fq chat-demo && wget -qO- http://127.0.0.1/assets/js/module-views.js | grep -Fq calendar-week"'
 
-      - name: Verify public HTTPS
+      - name: Verify public HTTPS and rendered modules
         id: public
         continue-on-error: true
         shell: bash
         run: |
-          set +e
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          HOME_RC=$?
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/data.js?v=10 -o /tmp/data
-          DATA_RC=$?
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/pages.css?v=10 -o /tmp/css
-          CSS_RC=$?
           set -e
-          test "$HOME_RC" -eq 0
-          test "$DATA_RC" -eq 0
-          test "$CSS_RC" -eq 0
-          grep -Fq "A+ Solution GmbH" /tmp/home
-          grep -Fq "KI-Dokumentensuche" /tmp/data
-          grep -Fq "public-hero" /tmp/css
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/js/module-views.js -o /tmp/modules
+          grep -Fq "app.js?v=12" /tmp/home
+          ! grep -Fq "atlasgames.js" /tmp/home
+          grep -Fq "chat-demo" /tmp/modules
+          grep -Fq "calendar-week" /tmp/modules
+
+          BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
+          test -n "$BROWSER"
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=5000 --dump-dom \
+            'https://football.smarbiz.sbs/?demo=management&route=communication' > /tmp/chat-dom
+          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=5000 --dump-dom \
+            'https://football.smarbiz.sbs/?demo=management&route=calendar' > /tmp/calendar-dom
+          grep -Fq 'chat-demo' /tmp/chat-dom
+          grep -Fq 'message-stream' /tmp/chat-dom
+          grep -Fq 'calendar-week' /tmp/calendar-dom
+          grep -Fq 'calendar-event' /tmp/calendar-dom
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -90,7 +94,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "A+ Solution modular demo is live and healthy" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Chat and Calendar render correctly in production browser" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -99,6 +103,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "A+ Solution deployment failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Rendered module verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
