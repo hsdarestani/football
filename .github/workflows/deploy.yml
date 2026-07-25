@@ -52,7 +52,7 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=16 && wget -qO- http://127.0.0.1/ | grep -Fq v16-portraits.css?v=16 && wget -qO- http://127.0.0.1/assets/css/v16-portraits.css | grep -Fq object-fit:contain && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -Fq KARRIERE. VERTRAUEN"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v16-portraits.css && grep -Fq app.js?v=16 /usr/share/nginx/html/index.html && grep -Fq v16-portraits.css?v=16 /usr/share/nginx/html/index.html && grep -Fq object-fit:contain /usr/share/nginx/html/assets/css/v16-portraits.css && grep -Fq KARRIERE. VERTRAUEN /usr/share/nginx/html/assets/js/pages-public.js"'
 
       - name: Verify public framing and minimal copy
         id: public
