@@ -62,7 +62,7 @@ jobs:
           sshpass -e ssh -p "$PORT" \
             -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             root@"$SERVER_HOST" \
-            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -q A.+Solution.GmbH && wget -qO- http://127.0.0.1/assets/js/data.js | grep -q KI-Dokumentensuche && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -q Produktvision"'
+            'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq \"A+ Solution GmbH\" && wget -qO- http://127.0.0.1/assets/js/data.js | grep -Fq \"KI-Dokumentensuche\" && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -Fq \"Produktvision\""'
 
       - name: Verify public HTTPS
         id: public
@@ -80,9 +80,9 @@ jobs:
           test "$HOME_RC" -eq 0
           test "$DATA_RC" -eq 0
           test "$CSS_RC" -eq 0
-          grep -q "A+ Solution GmbH" /tmp/home
-          grep -q "KI-Dokumentensuche" /tmp/data
-          grep -q "public-hero" /tmp/css
+          grep -Fq "A+ Solution GmbH" /tmp/home
+          grep -Fq "KI-Dokumentensuche" /tmp/data
+          grep -Fq "public-hero" /tmp/css
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
