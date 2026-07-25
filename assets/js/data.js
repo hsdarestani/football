@@ -1,4 +1,4 @@
-import {MEDIA} from './media.js?v=14';
+import {MEDIA} from './media.js?v=15';
 export const players=[
  {id:'younes',name:'Younes Ebnoutalib',club:'Eintracht Frankfurt',position:'Mittelstürmer',number:11,value:'8,0 Mio. €',rating:86,availability:'100 %',image:MEDIA.younes,nation:'Deutschland / Marokko',contract:'30.06.2031'},
  {id:'dickson',name:'Dickson Abiama',club:'Rot-Weiss Essen',position:'Mittelstürmer',number:17,value:'650 Tsd. €',rating:78,availability:'82 %',image:MEDIA.dickson,nation:'Deutschland / Nigeria',contract:'30.06.2027'},
