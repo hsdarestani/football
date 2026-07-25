@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying V15 real player portraits" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying V16 portrait framing" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
@@ -52,32 +52,29 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=15 && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -Fq data-real-player && wget -qO- http://127.0.0.1/assets/js/pages-app.js | grep -Fq data-real-player && wget -qO- http://127.0.0.1/assets/js/components.js | grep -Fq player-cell"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "wget -qO- http://127.0.0.1/ | grep -Fq app.js?v=16 && wget -qO- http://127.0.0.1/ | grep -Fq v16-portraits.css?v=16 && wget -qO- http://127.0.0.1/assets/css/v16-portraits.css | grep -Fq object-fit:contain && wget -qO- http://127.0.0.1/assets/js/pages-public.js | grep -Fq KARRIERE. VERTRAUEN"'
 
-      - name: Verify public and management portraits
+      - name: Verify public framing and minimal copy
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          grep -Fq 'app.js?v=15' /tmp/home
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v16-portraits.css -o /tmp/framing
+          grep -Fq 'app.js?v=16' /tmp/home
+          grep -Fq 'v16-portraits.css?v=16' /tmp/home
+          grep -Fq 'object-fit:contain' /tmp/framing
+          grep -Fq 'profile-cover>img[data-real-player]' /tmp/framing
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
           "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/' > /tmp/public-dom
           "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=players&player=younes' > /tmp/players-dom
-          "$BROWSER" --headless --no-sandbox --disable-gpu --virtual-time-budget=9000 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=documents' > /tmp/docs-dom
-
+          grep -Fq 'KARRIERE. VERTRAUEN.' /tmp/public-dom
+          grep -Fq 'Öffentliche Profile mit Karriere, Statistiken, Videos und News.' /tmp/public-dom
           grep -Fq 'data-real-player="younes"' /tmp/public-dom
-          grep -Fq 'data-real-player="dickson"' /tmp/public-dom
-          grep -Fq 'data-real-player="jamie"' /tmp/public-dom
-          grep -Fq 'data-player-photo="younes"' /tmp/players-dom
-          grep -Fq 'data-player-photo="dickson"' /tmp/players-dom
-          grep -Fq 'data-player-photo="jamie"' /tmp/players-dom
           grep -Fq 'data-real-player="younes"' /tmp/players-dom
-          grep -Fq 'Eintracht Frankfurt' /tmp/players-dom
-          grep -Fq 'player-cell' /tmp/docs-dom
 
       - name: Publish deployment success
         if: steps.public.outcome == 'success'
@@ -85,7 +82,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "V15 player portraits render in public and management views" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "V16 full portrait framing and minimal roster are live" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -94,6 +91,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "V15 portrait verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "V16 framing verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
