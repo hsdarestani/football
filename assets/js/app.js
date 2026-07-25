@@ -5,7 +5,7 @@ import {modal,icon} from './components.js?v=17';
 import {mountMotion} from './motion.js?v=17';
 import {playerSpotlight,animateSpotlight} from './player-spotlight.js?v=17';
 const app=document.getElementById('app');const overlay=document.getElementById('overlay-root');const spotlightRoot=document.getElementById('spotlight-root')||document.body.appendChild(Object.assign(document.createElement('div'),{id:'spotlight-root'}));
-const params=new URLSearchParams(location.search);const initialRoute=params.get('route');const initialRole=params.get('demo');
+const params=new URLSearchParams(location.search);const initialRoute=params.get('route');const initialRole=params.get('demo');const initialSpotlight=params.get('spotlight');
 const state={screen:initialRoute||initialRole?'app':'public',role:initialRole==='player'?'player':'management',route:initialRoute||'dashboard',playerId:params.get('player')||'younes',sidebar:false};
 function render(){app.innerHTML=state.screen==='public'?publicPage():shell(state);bindReveal();requestAnimationFrame(()=>mountMotion(document))}
 function bindReveal(){requestAnimationFrame(()=>{const els=document.querySelectorAll('.reveal');const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')}),{threshold:.08});els.forEach(e=>io.observe(e))})}
@@ -19,4 +19,4 @@ spotlightRoot.addEventListener('click',e=>{if(e.target.closest('[data-close-spot
 overlay.addEventListener('click',e=>{if(e.target.closest('[data-close-overlay]')){overlay.innerHTML='';return}const item=e.target.closest('[data-command-item]');if(item){const id=item.dataset.commandItem;if(id.startsWith('player:')){state.route='players';state.playerId=id.split(':')[1]}else state.route=id;state.screen='app';state.role='management';overlay.innerHTML='';syncUrl();render()}});
 overlay.addEventListener('input',e=>{if(!e.target.matches('[data-command-input]'))return;const q=e.target.value.toLowerCase();document.querySelectorAll('[data-command-item]').forEach(el=>{el.style.display=el.textContent.toLowerCase().includes(q)?'flex':'none'})});
 document.addEventListener('keydown',e=>{const trigger=e.target.closest?.('[data-spotlight]');if(trigger&&(e.key==='Enter'||e.key===' ')){e.preventDefault();openSpotlight(trigger.dataset.spotlight);return}if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCommand()}if(e.key==='Escape'){overlay.innerHTML='';closeSpotlight()}});
-render();
+render();if(initialSpotlight)requestAnimationFrame(()=>openSpotlight(initialSpotlight));
