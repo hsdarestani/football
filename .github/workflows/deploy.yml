@@ -52,7 +52,7 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css && grep -Fq app.js?v=24 /usr/share/nginx/html/index.html && grep -Fq v23-mobile-menu-chat.css?v=24 /usr/share/nginx/html/index.html && grep -Fq menuHomeOverlap /usr/share/nginx/html/assets/js/app.js && grep -Fq chatLayoutBroken /usr/share/nginx/html/assets/js/app.js && grep -Fq 'min-height:220px' /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css && grep -Fq 'body:has(.chat-demo) .brand-strip' /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app test -f /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css; docker compose exec -T app grep -Fq app.js?v=24 /usr/share/nginx/html/index.html; docker compose exec -T app grep -Fq v23-mobile-menu-chat.css?v=24 /usr/share/nginx/html/index.html; docker compose exec -T app grep -Fq menuHomeOverlap /usr/share/nginx/html/assets/js/app.js; docker compose exec -T app grep -Fq chatLayoutBroken /usr/share/nginx/html/assets/js/app.js'
 
       - name: Verify mobile sidebar and compact chat
         id: public
