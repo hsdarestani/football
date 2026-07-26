@@ -1,4 +1,4 @@
-/* A+ Football Suite V23 — mobile sidebar + chat repair */
+/* A+ Football Suite V24 — mobile sidebar + chat repair */
 @media(max-width:820px){
   /* Sidebar: only the navigation list scrolls; actions stay fixed and never overlap it. */
   .sidebar{
@@ -34,11 +34,17 @@
     inset:auto!important;
     z-index:3!important;
     flex:0 0 auto!important;
-    margin:0 0 0!important;
+    margin:0!important;
     padding:7px 0 0!important;
     background:linear-gradient(180deg,rgba(7,12,19,.96),#070c13)!important;
   }
-  .sidebar-foot .user-card{min-height:64px!important;margin:0 0 0!important}
+  .sidebar-foot .user-card{min-height:64px!important;margin:0!important}
+
+  /* Chat gets a focused mobile header so the conversation and composer fit above bottom navigation. */
+  body:has(.chat-demo) .brand-strip{display:none!important}
+  body:has(.chat-demo) .content{padding-top:10px!important}
+  body:has(.chat-demo) .page-head{margin-bottom:12px!important}
+  body:has(.chat-demo) .page-head p{display:none!important}
 
   /* Management chat: short horizontal contact cards, then one independent conversation. */
   .chat-demo{
@@ -115,21 +121,22 @@
     display:flex!important;
     flex-direction:column!important;
     width:100%!important;
-    min-height:480px!important;
+    min-height:400px!important;
     height:auto!important;
     max-height:none!important;
-    margin:0 0 12px!important;
+    margin:0 0 calc(var(--mobile-nav-h) + 12px)!important;
     overflow:hidden!important;
     border-radius:21px!important;
   }
-  .chat-thread .panel-head{min-height:68px!important;padding:11px 13px!important}
+  .chat-thread .panel-head{min-height:66px!important;padding:10px 13px!important}
   .chat-thread .panel-head .avatar{width:44px!important;height:44px!important}
   .message-stream{
-    min-height:310px!important;
-    padding:15px 12px!important;
-    gap:10px!important;
+    min-height:220px!important;
+    padding:13px 12px!important;
+    gap:9px!important;
+    flex:1 1 auto!important;
   }
-  .message{max-width:88%!important;padding:11px 12px!important;font-size:11px!important;line-height:1.5!important}
+  .message{max-width:88%!important;padding:10px 12px!important;font-size:11px!important;line-height:1.45!important}
   .message-compose{
     position:relative!important;
     inset:auto!important;
@@ -138,6 +145,7 @@
     gap:8px!important;
     padding:10px!important;
     background:rgba(8,14,21,.98)!important;
+    border-top:1px solid rgba(255,255,255,.07)!important;
   }
   .message-compose input{min-width:0!important;height:46px!important}
   .message-compose .btn{height:46px!important;min-height:46px!important;max-height:46px!important;padding:0 14px!important}
@@ -150,6 +158,6 @@
     min-width:84vw!important;
     max-width:84vw!important;
   }
-  .chat-thread{min-height:455px!important}
-  .message-stream{min-height:285px!important}
+  .chat-thread{min-height:380px!important}
+  .message-stream{min-height:200px!important}
 }
