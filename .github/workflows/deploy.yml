@@ -29,7 +29,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying compact mobile controls V22" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
+          jq -n --arg state pending --arg target_url "$RUN_URL" --arg description "Deploying mobile sidebar and chat repair V23" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/status.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/status.json
 
       - name: Check deployment secrets
@@ -47,65 +47,79 @@ jobs:
           export SSHPASS="$ROOT_PASSWORD"
           sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o ServerAliveInterval=30 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'curl -fsSL https://raw.githubusercontent.com/hsdarestani/football/main/deploy.sh | bash'
 
-      - name: Verify V22 server files
+      - name: Verify V23 server files
         shell: bash
         run: |
           PORT="${SSH_PORT:-22}"
           export SSHPASS="$ROOT_PASSWORD"
-          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v22-mobile-controls.css && grep -Fq app.js?v=22 /usr/share/nginx/html/index.html && grep -Fq v22-mobile-controls.css?v=22 /usr/share/nginx/html/index.html && grep -Fq oversizedControls /usr/share/nginx/html/assets/js/app.js && grep -Fq spotlight-actions /usr/share/nginx/html/assets/css/v22-mobile-controls.css && grep -Fq hero-actions /usr/share/nginx/html/assets/css/v22-mobile-controls.css"'
+          sshpass -e ssh -p "$PORT" -o ConnectTimeout=20 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@"$SERVER_HOST" 'set -e; cd /opt/apex-xi; docker compose ps; docker compose exec -T app sh -c "test -f /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css && grep -Fq app.js?v=23 /usr/share/nginx/html/index.html && grep -Fq v23-mobile-menu-chat.css?v=23 /usr/share/nginx/html/index.html && grep -Fq menuHomeOverlap /usr/share/nginx/html/assets/js/app.js && grep -Fq chatLayoutBroken /usr/share/nginx/html/assets/js/app.js && grep -Fq chat-contacts /usr/share/nginx/html/assets/css/v23-mobile-menu-chat.css"'
 
-      - name: Verify real mobile CTA dimensions
+      - name: Verify mobile sidebar and chat geometry
         id: public
         continue-on-error: true
         shell: bash
         run: |
           set -e
           curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/ -o /tmp/home
-          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v22-mobile-controls.css -o /tmp/control-css
-          grep -Fq 'app.js?v=22' /tmp/home
-          grep -Fq 'v22-mobile-controls.css?v=22' /tmp/home
-          grep -Fq '.btn>svg' /tmp/control-css
-          grep -Fq 'max-height:54px' /tmp/control-css
-          grep -Fq 'max-height:52px' /tmp/control-css
+          curl -fsSL --connect-timeout 7 --max-time 20 https://football.smarbiz.sbs/assets/css/v23-mobile-menu-chat.css -o /tmp/v23-css
+          grep -Fq 'app.js?v=23' /tmp/home
+          grep -Fq 'v23-mobile-menu-chat.css?v=23' /tmp/home
+          grep -Fq '.sidebar-scroll' /tmp/v23-css
+          grep -Fq '.chat-contacts>.player-row' /tmp/v23-css
+          grep -Fq 'body:has(.chat-demo) .floating-create' /tmp/v23-css
 
           BROWSER="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || true)"
           test -n "$BROWSER"
           CHROME_ARGS="--headless=new --no-sandbox --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=12000"
 
-          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?mobilecheck=1' > /tmp/public-mobile.html
-          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?spotlight=younes&mobilecheck=1' > /tmp/spotlight-mobile.html
-          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes&mobilecheck=1' > /tmp/player-mobile.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=dashboard&menu=1&mobilecheck=1' > /tmp/menu-390.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=communication&mobilecheck=1' > /tmp/chat-management-390.html
+          $BROWSER $CHROME_ARGS --window-size=430,932 --dump-dom 'https://football.smarbiz.sbs/?demo=management&route=communication&mobilecheck=1' > /tmp/chat-management-430.html
+          $BROWSER $CHROME_ARGS --window-size=390,844 --dump-dom 'https://football.smarbiz.sbs/?demo=player&route=communication&player=younes&mobilecheck=1' > /tmp/chat-player-390.html
 
-          for file in /tmp/public-mobile.html /tmp/spotlight-mobile.html /tmp/player-mobile.html; do
+          for file in /tmp/menu-390.html /tmp/chat-management-390.html /tmp/chat-management-430.html /tmp/chat-player-390.html; do
             grep -Fq 'id="mobile-diagnostics"' "$file"
             grep -Fq 'data-overflow="false"' "$file"
-            grep -Fq 'data-oversized-controls="false"' "$file"
-            grep -Fq 'data-max-control-height=' "$file"
-            grep -Fq 'data-max-control-svg=' "$file"
           done
 
-          grep -Fq 'Management-Demo öffnen' /tmp/public-mobile.html
-          grep -Fq 'spotlight-shell' /tmp/spotlight-mobile.html
-          grep -Fq 'data-spotlight="true"' /tmp/spotlight-mobile.html
-          grep -Fq 'data-player-view="calendar"' /tmp/player-mobile.html
-          grep -Fq 'data-home-buttons="2"' /tmp/player-mobile.html
+          grep -Fq 'data-sidebar="true"' /tmp/menu-390.html
+          grep -Fq 'data-menu-home-overlap="false"' /tmp/menu-390.html
+          grep -Fq 'data-home-foot-overlap="false"' /tmp/menu-390.html
+          grep -Fq 'class="sidebar-home-link"' /tmp/menu-390.html
+          grep -Fq 'class="sidebar-foot"' /tmp/menu-390.html
 
-          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/public-mobile-v22.png 'https://football.smarbiz.sbs/'
-          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/spotlight-mobile-v22.png 'https://football.smarbiz.sbs/?spotlight=younes'
-          $BROWSER $CHROME_ARGS --window-size=430,932 --screenshot=/tmp/player-mobile-v22.png 'https://football.smarbiz.sbs/?demo=player&route=calendar&player=younes'
-          test -s /tmp/public-mobile-v22.png
-          test -s /tmp/spotlight-mobile-v22.png
-          test -s /tmp/player-mobile-v22.png
+          for file in /tmp/chat-management-390.html /tmp/chat-management-430.html /tmp/chat-player-390.html; do
+            grep -Fq 'chat-demo' "$file"
+            grep -Fq 'data-chat-layout-broken="false"' "$file"
+            grep -Fq 'data-chat-floating-create="false"' "$file"
+            grep -Eq 'data-max-chat-contact-height="([0-8]?[0-9]|9[0-6])"' "$file"
+            ! grep -Fq 'class="floating-create"' "$file"
+          done
 
-      - name: Upload V22 mobile screenshots
+          grep -Fq 'Younes Ebnoutalib' /tmp/chat-management-390.html
+          grep -Fq 'Dickson Abiama' /tmp/chat-management-390.html
+          grep -Fq 'Nachricht schreiben' /tmp/chat-management-390.html
+          grep -Fq 'Dein Management-Chat' /tmp/chat-player-390.html
+
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/mobile-menu-v23.png 'https://football.smarbiz.sbs/?demo=management&route=dashboard&menu=1'
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/mobile-chat-management-v23.png 'https://football.smarbiz.sbs/?demo=management&route=communication'
+          $BROWSER $CHROME_ARGS --window-size=430,932 --screenshot=/tmp/mobile-chat-management-430-v23.png 'https://football.smarbiz.sbs/?demo=management&route=communication'
+          $BROWSER $CHROME_ARGS --window-size=390,844 --screenshot=/tmp/mobile-chat-player-v23.png 'https://football.smarbiz.sbs/?demo=player&route=communication&player=younes'
+          test -s /tmp/mobile-menu-v23.png
+          test -s /tmp/mobile-chat-management-v23.png
+          test -s /tmp/mobile-chat-management-430-v23.png
+          test -s /tmp/mobile-chat-player-v23.png
+
+      - name: Upload V23 mobile screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: mobile-controls-v22-${{ github.run_number }}
+          name: mobile-menu-chat-v23-${{ github.run_number }}
           path: |
-            /tmp/public-mobile-v22.png
-            /tmp/spotlight-mobile-v22.png
-            /tmp/player-mobile-v22.png
+            /tmp/mobile-menu-v23.png
+            /tmp/mobile-chat-management-v23.png
+            /tmp/mobile-chat-management-430-v23.png
+            /tmp/mobile-chat-player-v23.png
           if-no-files-found: ignore
           retention-days: 7
 
@@ -115,7 +129,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Mobile CTA and spotlight controls V22 pass computed-size tests" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state success --arg target_url "$RUN_URL" --arg description "Mobile sidebar and chat V23 pass geometry tests" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
 
       - name: Publish deployment failure
@@ -124,6 +138,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Mobile V22 control verification failed; open workflow logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
+          jq -n --arg state failure --arg target_url "$RUN_URL" --arg description "Mobile sidebar/chat V23 verification failed; open logs" --arg context "production/deployment" '{state:$state,target_url:$target_url,description:$description,context:$context}' >/tmp/final.json
           curl -fsS -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$STATUS_API" --data-binary @/tmp/final.json
           exit 1
