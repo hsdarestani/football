@@ -1,4 +1,10 @@
-football.smarbiz.sbs {
+{
+    # TLS is terminated by Cloudflare. Keeping origin HTTP avoids a
+    # Flexible-SSL redirect loop (HTTPS visitor -> HTTP origin -> HTTPS redirect).
+    auto_https off
+}
+
+http://football.smarbiz.sbs {
     encode zstd gzip
     reverse_proxy app:80
     header {
