@@ -1,10 +1,10 @@
 {
-    # TLS is terminated by Cloudflare. Keeping origin HTTP avoids a
-    # Flexible-SSL redirect loop (HTTPS visitor -> HTTP origin -> HTTPS redirect).
-    auto_https off
+    # Keep certificate automation for Full/Strict while also accepting the
+    # plaintext origin connection used by Cloudflare Flexible mode.
+    auto_https disable_redirects
 }
 
-http://football.smarbiz.sbs {
+(football_app) {
     encode zstd gzip
     reverse_proxy app:80
     header {
@@ -13,4 +13,12 @@ http://football.smarbiz.sbs {
         X-Frame-Options "SAMEORIGIN"
         Referrer-Policy "strict-origin-when-cross-origin"
     }
+}
+
+http://football.smarbiz.sbs {
+    import football_app
+}
+
+https://football.smarbiz.sbs {
+    import football_app
 }
