@@ -24,10 +24,10 @@ fi
 cd "$APP_DIR"
 docker compose up -d --build --remove-orphans
 
-# The Caddyfile is bind-mounted, so Compose may keep the existing proxy
-# container running after a config-only update. Explicitly validate and reload it.
+# Git may replace the bind-mounted Caddyfile inode during reset. Recreate the
+# proxy container so it mounts the current file, then validate the live config.
+docker compose up -d --force-recreate --no-deps caddy
 docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
 
 docker image prune -f
 
