@@ -23,6 +23,12 @@ fi
 
 cd "$APP_DIR"
 docker compose up -d --build --remove-orphans
+
+# The Caddyfile is bind-mounted, so Compose may keep the existing proxy
+# container running after a config-only update. Explicitly validate and reload it.
+docker compose exec -T caddy caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+
 docker image prune -f
 
 echo "Apex XI deployed. Verify DNS for football.smarbiz.sbs and open https://football.smarbiz.sbs"
